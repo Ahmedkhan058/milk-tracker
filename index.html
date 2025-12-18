@@ -1,1 +1,98 @@
-Renaming file tracker.html to index.html as requested.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Milk Tracker</title>
+  <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+    }
+    .day {
+      width: 100%;
+      padding: 10px;
+      text-align: center;
+      border: 1px solid #ddd;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+    .today {
+      background-color: #f8f9fa;
+      font-weight: bold;
+    }
+    .taken {
+      background-color: #d4edda;
+    }
+    .not-taken {
+      background-color: #f8d7da;
+    }
+  </style>
+</head>
+<body>
+  <div class="container mt-4">
+    <h1 class="text-center">Milk Tracker</h1>
+    <p class="text-center">Keep track of daily milk consumption</p>
+    <div id="calendar" class="calendar mt-4"></div>
+  </div>
+
+  <script>
+    const MAX_DAYS = 90;
+
+    function getLastNDays(n) {
+      const days = [];
+      const today = new Date();
+      for (let i = 0; i < n; i++) {
+        const date = new Date();
+        date.setDate(today.getDate() - i);
+        days.push(date);
+      }
+      return days.reverse();
+    }
+
+    function formatDate(date) {
+      return date.toISOString().split('T')[0];
+    }
+
+    function loadMilkData() {
+      return JSON.parse(localStorage.getItem('milkTracker')) || {};
+    }
+
+    function saveMilkData(data) {
+      localStorage.setItem('milkTracker', JSON.stringify(data));
+    }
+
+    function renderCalendar() {
+      const calendar = document.getElementById('calendar');
+      calendar.innerHTML = '';
+      const days = getLastNDays(MAX_DAYS);
+      const milkData = loadMilkData();
+
+      days.forEach((date) => {
+        const dateStr = formatDate(date);
+        const dayDiv = document.createElement('div');
+        dayDiv.classList.add('day');
+        if (milkData[dateStr] === 'yes') {
+          dayDiv.classList.add('taken');
+        } else if (milkData[dateStr] === 'no') {
+          dayDiv.classList.add('not-taken');
+        }
+        if (dateStr === formatDate(new Date())) {
+          dayDiv.classList.add('today');
+        }
+        dayDiv.textContent = date.toDateString();
+        dayDiv.addEventListener('click', () => {
+          const action = milkData[dateStr] === 'yes' ? 'no' : 'yes';
+          milkData[dateStr] = action;
+          saveMilkData(milkData);
+          renderCalendar();
+        });
+        calendar.appendChild(dayDiv);
+      });
+    }
+
+    renderCalendar();
+  </script>
+</body>
+</html>
