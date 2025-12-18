@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,91 +6,65 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Milk Tracker</title>
 
-  <!-- Bootstrap -->
   <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet"/>
 
   <style>
-    body {
-      background-color: #f4f6f9;
-    }
+    body { background:#f4f6f9; }
 
-    /* Header */
-    .navbar {
-      background-color: #007bff;
-    }
-    .navbar-brand {
-      color: #fff !important;
-      font-weight: bold;
-    }
+    .navbar { background:#007bff; }
+    .navbar-brand { color:#fff !important; font-weight:600; }
 
-    /* Calendar */
     .calendar {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 8px;
+      display:grid;
+      grid-template-columns:repeat(7,1fr);
+      gap:8px;
     }
 
     .day-name {
-      font-weight: bold;
-      text-align: center;
-      color: #6c757d;
+      text-align:center;
+      font-weight:600;
+      color:#6c757d;
     }
 
     .day {
-      background-color: #ffffff;
-      border-radius: 8px;
-      padding: 10px;
-      min-height: 80px;
-      text-align: center;
-      cursor: pointer;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
+      background:#fff;
+      border-radius:8px;
+      min-height:80px;
+      padding:8px;
+      text-align:center;
+      cursor:pointer;
+      box-shadow:0 1px 4px rgba(0,0,0,0.1);
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
     }
 
-    .day small {
-      font-size: 12px;
-      color: #6c757d;
-    }
+    .today { border:2px solid #007bff; }
+    .taken { background:#d4edda; }
+    .not-taken { background:#f8d7da; }
+    .empty { background:transparent; box-shadow:none; cursor:default; }
 
-    .today {
-      border: 2px solid #007bff;
-    }
-
-    .taken {
-      background-color: #d4edda;
-    }
-
-    .not-taken {
-      background-color: #f8d7da;
-    }
-
-    /* Mobile */
-    @media (max-width: 576px) {
-      .calendar {
-        gap: 5px;
-      }
-      .day {
-        min-height: 65px;
-        padding: 6px;
-      }
+    @media (max-width:576px) {
+      .day { min-height:65px; padding:6px; }
     }
   </style>
 </head>
 <body>
 
-<!-- Header -->
-<nav class="navbar navbar-expand-lg">
+<nav class="navbar">
   <span class="navbar-brand">🥛 Milk Tracker</span>
 </nav>
 
 <div class="container mt-4">
-  <p class="text-center text-muted">
-    Tap a day to mark <strong>Milk Taken / Not Taken</strong>
-  </p>
 
-  <!-- Day Names -->
+  <!-- Month Navigation -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <button class="btn btn-outline-primary btn-sm" onclick="changeMonth(-1)">◀ Prev</button>
+    <h5 id="monthTitle" class="mb-0 font-weight-bold"></h5>
+    <button class="btn btn-outline-primary btn-sm" onclick="changeMonth(1)">Next ▶</button>
+  </div>
+
+  <!-- Weekdays -->
   <div class="calendar mb-2">
     <div class="day-name">Sun</div>
     <div class="day-name">Mon</div>
@@ -105,10 +80,10 @@
 </div>
 
 <script>
-  const MAX_DAYS = 30;
+  let currentDate = new Date();
 
   function formatDate(date) {
-    return date.toISOString().split('T')[0];
+    return date.toISOString().split("T")[0];
   }
 
   function loadMilkData() {
@@ -121,36 +96,55 @@
 
   function renderCalendar() {
     const calendar = document.getElementById("calendar");
+    const title = document.getElementById("monthTitle");
     calendar.innerHTML = "";
 
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+
+    title.textContent = currentDate.toLocaleString("default", {
+      month: "long",
+      year: "numeric"
+    });
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
     const milkData = loadMilkData();
-    const today = new Date();
+    const todayStr = formatDate(new Date());
 
-    for (let i = MAX_DAYS - 1; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(today.getDate() - i);
+    // Empty slots before 1st
+    for (let i = 0; i < firstDay; i++) {
+      const empty = document.createElement("div");
+      empty.className = "day empty";
+      calendar.appendChild(empty);
+    }
 
+    // Days of month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month, day);
       const dateStr = formatDate(date);
-      const dayDiv = document.createElement("div");
-      dayDiv.className = "day";
+      const div = document.createElement("div");
+      div.className = "day";
 
-      if (milkData[dateStr] === "yes") dayDiv.classList.add("taken");
-      if (milkData[dateStr] === "no") dayDiv.classList.add("not-taken");
-      if (dateStr === formatDate(today)) dayDiv.classList.add("today");
+      if (milkData[dateStr] === "yes") div.classList.add("taken");
+      if (milkData[dateStr] === "no") div.classList.add("not-taken");
+      if (dateStr === todayStr) div.classList.add("today");
 
-      dayDiv.innerHTML = `
-        <strong>${date.getDate()}</strong>
-        <small>${date.toLocaleString("default", { month: "short" })}</small>
-      `;
+      div.innerHTML = `<strong>${day}</strong>`;
 
-      dayDiv.onclick = () => {
+      div.onclick = () => {
         milkData[dateStr] = milkData[dateStr] === "yes" ? "no" : "yes";
         saveMilkData(milkData);
         renderCalendar();
       };
 
-      calendar.appendChild(dayDiv);
+      calendar.appendChild(div);
     }
+  }
+
+  function changeMonth(step) {
+    currentDate.setMonth(currentDate.getMonth() + step);
+    renderCalendar();
   }
 
   renderCalendar();
