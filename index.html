@@ -1,98 +1,116 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Milk Tracker</title>
-  <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    .calendar {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-    }
-    .day {
-      width: 100%;
-      padding: 10px;
-      text-align: center;
-      border: 1px solid #ddd;
-      margin-top: 10px;
-      cursor: pointer;
-    }
-    .today {
-      background-color: #f8f9fa;
-      font-weight: bold;
-    }
-    .taken {
-      background-color: #d4edda;
-    }
-    .not-taken {
-      background-color: #f8d7da;
-    }
-  </style>
+    <title>Milk Tracker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .calendar {
+            max-width: 400px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .calendar-days {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .day {
+            width: 14.28%;
+            border: 1px solid #ddd;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        .tracked {
+            background-color: #cce5ff;
+        }
+    </style>
 </head>
 <body>
-  <div class="container mt-4">
-    <h1 class="text-center">Milk Tracker</h1>
-    <p class="text-center">Keep track of daily milk consumption</p>
-    <div id="calendar" class="calendar mt-4"></div>
-  </div>
+    <div class="calendar">
+        <div class="calendar-header">
+            <button id="prev-month">&lt;</button>
+            <span id="month-year">January 2025</span>
+            <button id="next-month">&gt;</button>
+        </div>
+        <div class="calendar-days" id="calendar-days">
+            <!-- Days will be dynamically populated here -->
+        </div>
+    </div>
 
-  <script>
-    const MAX_DAYS = 90;
+    <script>
+        let currentDate = new Date();
+        let milkTrackingData = JSON.parse(localStorage.getItem('milkTrackingData')) || {};
 
-    function getLastNDays(n) {
-      const days = [];
-      const today = new Date();
-      for (let i = 0; i < n; i++) {
-        const date = new Date();
-        date.setDate(today.getDate() - i);
-        days.push(date);
-      }
-      return days.reverse();
-    }
+        function renderCalendar() {
+            const monthYearElement = document.getElementById('month-year');
+            const calendarDaysElement = document.getElementById('calendar-days');
 
-    function formatDate(date) {
-      return date.toISOString().split('T')[0];
-    }
+            // Clear the current calendar days
+            calendarDaysElement.innerHTML = '';
 
-    function loadMilkData() {
-      return JSON.parse(localStorage.getItem('milkTracker')) || {};
-    }
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
 
-    function saveMilkData(data) {
-      localStorage.setItem('milkTracker', JSON.stringify(data));
-    }
+            // Update month-year display
+            monthYearElement.textContent = `${currentDate.toLocaleString('default', { month: 'long' })} ${year}`;
 
-    function renderCalendar() {
-      const calendar = document.getElementById('calendar');
-      calendar.innerHTML = '';
-      const days = getLastNDays(MAX_DAYS);
-      const milkData = loadMilkData();
+            // Get the first day and number of days in the month
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-      days.forEach((date) => {
-        const dateStr = formatDate(date);
-        const dayDiv = document.createElement('div');
-        dayDiv.classList.add('day');
-        if (milkData[dateStr] === 'yes') {
-          dayDiv.classList.add('taken');
-        } else if (milkData[dateStr] === 'no') {
-          dayDiv.classList.add('not-taken');
+            // Fill in the days
+            for (let i = 0; i < firstDay; i++) {
+                const placeholderDay = document.createElement('div');
+                placeholderDay.classList.add('day');
+                calendarDaysElement.appendChild(placeholderDay);
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayElement = document.createElement('div');
+                dayElement.classList.add('day');
+                dayElement.textContent = day;
+
+                const dateKey = `${year}-${month + 1}-${day}`;
+                if (milkTrackingData[dateKey]) {
+                    dayElement.classList.add('tracked');
+                }
+
+                dayElement.addEventListener('click', () => {
+                    if (milkTrackingData[dateKey]) {
+                        delete milkTrackingData[dateKey];
+                        dayElement.classList.remove('tracked');
+                    } else {
+                        milkTrackingData[dateKey] = true;
+                        dayElement.classList.add('tracked');
+                    }
+
+                    localStorage.setItem('milkTrackingData', JSON.stringify(milkTrackingData));
+                });
+
+                calendarDaysElement.appendChild(dayElement);
+            }
         }
-        if (dateStr === formatDate(new Date())) {
-          dayDiv.classList.add('today');
-        }
-        dayDiv.textContent = date.toDateString();
-        dayDiv.addEventListener('click', () => {
-          const action = milkData[dateStr] === 'yes' ? 'no' : 'yes';
-          milkData[dateStr] = action;
-          saveMilkData(milkData);
-          renderCalendar();
+
+        document.getElementById('prev-month').addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar();
         });
-        calendar.appendChild(dayDiv);
-      });
-    }
 
-    renderCalendar();
-  </script>
+        document.getElementById('next-month').addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar();
+        });
+
+        renderCalendar();
+    </script>
 </body>
 </html>
